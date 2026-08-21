@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShoppingBag, Heart, GitMerge, RotateCcw, LogIn, LogOut, ShieldCheck } from 'lucide-react';
+import { ShoppingBag, Heart, GitMerge, QrCode, RotateCcw, LogIn, LogOut, ShieldCheck } from 'lucide-react';
 
 export default function Header({ 
   activeTab, 
@@ -8,6 +8,7 @@ export default function Header({
   activeWishlist,
   currentUser,
   onOpenAuthModal,
+  onOpenQRScanner,
   onSignOut,
   onOpenMergeModal,
   onResetData
@@ -101,6 +102,16 @@ export default function Header({
           {/* Right Utilities & Auth Controls */}
           <div className="flex items-center space-x-2 sm:space-x-3">
             
+            {/* Scan QR Button */}
+            <button
+              onClick={onOpenQRScanner}
+              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-800 transition-colors border border-slate-200"
+              title="Scan Wishlist QR Code using device camera or file"
+            >
+              <QrCode className="w-3.5 h-3.5 text-indigo-600" />
+              <span className="hidden sm:inline">Scan QR</span>
+            </button>
+
             {totalWishlists >= 2 && (
               <button
                 onClick={onOpenMergeModal}

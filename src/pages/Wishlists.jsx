@@ -1,5 +1,5 @@
 import React from 'react';
-import { Heart, Plus, GitMerge, Edit2, Trash2, ShoppingBag, ArrowRight, FolderHeart, Share2 } from 'lucide-react';
+import { Heart, Plus, GitMerge, Edit2, Trash2, ShoppingBag, ArrowRight, FolderHeart, Share2, QrCode } from 'lucide-react';
 import WishlistSidebar from '../components/WishlistSidebar';
 import WishlistItem from '../components/WishlistItem';
 
@@ -14,6 +14,7 @@ export default function Wishlists({
   onDeleteWishlistClick, 
   onMergeWishlistsClick, 
   onShareWishlistClick,
+  onOpenQRScanner,
   onRemoveItem, 
   onQuickView, 
   onNavigateToStorefront 
@@ -41,6 +42,7 @@ export default function Wishlists({
             onDeleteClick={() => activeWishlist && onDeleteWishlistClick(activeWishlist)}
             onMergeClick={onMergeWishlistsClick}
             onShareClick={onShareWishlistClick}
+            onOpenQRScanner={onOpenQRScanner}
           />
         </div>
 
@@ -153,17 +155,27 @@ export default function Wishlists({
               <div>
                 <h3 className="text-lg font-extrabold text-slate-900 mb-1">No Wishlists Found</h3>
                 <p className="text-xs text-slate-500 leading-relaxed">
-                  All wishlists have been deleted. Create a new wishlist to start saving your favorite products.
+                  You don't have any wishlists yet. Create a new wishlist or scan a QR code to import a friend's wishlist.
                 </p>
               </div>
 
-              <button
-                onClick={onCreateWishlistClick}
-                className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all shadow-md"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Create Wishlist</span>
-              </button>
+              <div className="flex items-center justify-center space-x-3">
+                <button
+                  onClick={onCreateWishlistClick}
+                  className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all shadow-md"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Create Wishlist</span>
+                </button>
+
+                <button
+                  onClick={onOpenQRScanner}
+                  className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition-all border border-slate-200"
+                >
+                  <QrCode className="w-4 h-4 text-indigo-600" />
+                  <span>Scan QR Code</span>
+                </button>
+              </div>
             </div>
           )}
         </div>

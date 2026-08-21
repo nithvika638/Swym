@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, GitMerge, Edit2, Trash2, Heart, Share2, Sparkles } from 'lucide-react';
+import { Plus, GitMerge, Edit2, Trash2, Heart, Share2, QrCode, Sparkles } from 'lucide-react';
 
 export default function WishlistSidebar({ 
   wishlists, 
@@ -9,7 +9,8 @@ export default function WishlistSidebar({
   onRenameClick, 
   onDeleteClick, 
   onMergeClick,
-  onShareClick
+  onShareClick,
+  onOpenQRScanner
 }) {
   const canMerge = wishlists.length >= 2;
 
@@ -29,15 +30,25 @@ export default function WishlistSidebar({
         </div>
 
         {/* Primary Action Buttons */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 gap-2">
+        <div className="grid grid-cols-1 gap-2">
           
-          <button
-            onClick={onCreateClick}
-            className="flex items-center justify-center space-x-2 py-2.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-sm transition-all"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Create New List</span>
-          </button>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={onCreateClick}
+              className="flex items-center justify-center space-x-1.5 py-2.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-sm transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Create List</span>
+            </button>
+
+            <button
+              onClick={onOpenQRScanner}
+              className="flex items-center justify-center space-x-1.5 py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs transition-all border border-slate-200"
+            >
+              <QrCode className="w-4 h-4 text-indigo-600" />
+              <span>Scan QR</span>
+            </button>
+          </div>
 
           <button
             onClick={onMergeClick}
@@ -134,7 +145,7 @@ export default function WishlistSidebar({
           </div>
         ) : (
           <div className="p-6 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-xs text-slate-500">
-            No wishlists available. Click "Create New List" above to get started.
+            No wishlists available. Click "Create List" above to get started.
           </div>
         )}
       </div>
@@ -143,7 +154,7 @@ export default function WishlistSidebar({
       <div className="p-3.5 rounded-2xl bg-indigo-50/50 border border-indigo-100 text-xs text-indigo-900 flex items-start space-x-2.5">
         <Sparkles className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
         <p className="leading-relaxed text-[11px] text-indigo-800">
-          <strong>Share Feature:</strong> Hover over any wishlist and click the share icon to copy a link or display a QR Code!
+          <strong>Built-In QR Scanner:</strong> Click "Scan QR" to scan wishlist QR codes with your device camera or upload image files!
         </p>
       </div>
 

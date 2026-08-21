@@ -9,6 +9,7 @@ import MergeWishlistModal from './components/MergeWishlistModal';
 import CreateWishlistModal from './components/CreateWishlistModal';
 import ShareWishlistModal from './components/ShareWishlistModal';
 import ImportSharedWishlistModal from './components/ImportSharedWishlistModal';
+import QRScannerModal from './components/QRScannerModal';
 import AuthModal from './components/AuthModal';
 import ConfirmDialog from './components/ConfirmDialog';
 import { useWishlists } from './hooks/useWishlists';
@@ -68,6 +69,7 @@ export default function App() {
   const [isMergeModalOpen, setIsMergeModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isQRScannerOpen, setIsQRScannerOpen] = useState(false);
   const [renameListTarget, setRenameListTarget] = useState(null);
   const [deleteListTarget, setDeleteListTarget] = useState(null);
   const [shareListTarget, setShareListTarget] = useState(null);
@@ -94,7 +96,6 @@ export default function App() {
   // Handlers
   const handleAddToWishlistClick = (product) => {
     if (!currentUser) {
-      // Prompt Guest to Sign In to save wishlists to database
       setIsAuthModalOpen(true);
       showToast("Please Sign In or Register to save products to your wishlists!", "info");
       return;
@@ -180,6 +181,7 @@ export default function App() {
         activeWishlist={activeWishlist}
         currentUser={currentUser}
         onOpenAuthModal={() => setIsAuthModalOpen(true)}
+        onOpenQRScanner={() => setIsQRScannerOpen(true)}
         onSignOut={handleSignOut}
         onOpenMergeModal={() => setIsMergeModalOpen(true)}
         onResetData={() => {
@@ -216,6 +218,7 @@ export default function App() {
             onDeleteWishlistClick={(wl) => setDeleteListTarget(wl)}
             onMergeWishlistsClick={() => setIsMergeModalOpen(true)}
             onShareWishlistClick={(wl) => setShareListTarget(wl)}
+            onOpenQRScanner={() => setIsQRScannerOpen(true)}
             onRemoveItem={(wlId, prodId) => {
               removeItem(wlId, prodId);
               showToast('Item removed from wishlist', 'info');
@@ -273,6 +276,18 @@ export default function App() {
           onAuthSuccess={(user, message) => {
             setCurrentUser(user);
             showToast(message);
+          }}
+        />
+      )}
+
+      {/* Built-In QR Code Scanner Modal */}
+      {isQRScannerOpen && (
+        <QRScannerModal
+          isOpen={isQRScannerOpen}
+          onClose={() => setIsQRScannerOpen(false)}
+          onScanSuccess={(decodedPayload) => {
+            setSharedImportData(decodedPayload);
+            showToast("QR Code scanned! Previewing shared wishlist...", "info");
           }}
         />
       )}
@@ -380,7 +395,7 @@ export default function App() {
       {/* Footer */}
       <footer className="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-400 mt-12">
         <div className="max-w-7xl mx-auto px-4">
-          <p>© 2026 ApexStore • Multi-User Database & Admin Portal • GitHub Pages Ready</p>
+          <p>© 2026 ApexStore • In-Browser Camera & File QR Scanner Engine • GitHub Pages Ready</p>
         </div>
       </footer>
 
