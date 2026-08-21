@@ -2,28 +2,35 @@ import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
 import Storefront from './pages/Storefront';
 import Wishlists from './pages/Wishlists';
+import AdminDashboard from './pages/AdminDashboard';
 import ProductDetailModal from './components/ProductDetailModal';
 import AddToWishlistModal from './components/AddToWishlistModal';
 import MergeWishlistModal from './components/MergeWishlistModal';
 import CreateWishlistModal from './components/CreateWishlistModal';
 import ShareWishlistModal from './components/ShareWishlistModal';
 import ImportSharedWishlistModal from './components/ImportSharedWishlistModal';
+import AuthModal from './components/AuthModal';
 import ConfirmDialog from './components/ConfirmDialog';
-import { INITIAL_PRODUCTS } from './data/products';
 import { useWishlists } from './hooks/useWishlists';
-import { useUserAccounts } from './hooks/useUserAccounts';
+import { authService } from './services/authService';
+import { dbService } from './services/dbService';
 import { decodeWishlistFromShareUrl } from './utils/wishlistUtils';
 import { CheckCircle2, Heart, AlertCircle, X } from 'lucide-react';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('storefront');
-  const [products] = useState(INITIAL_PRODUCTS);
+  const [activeTab, setActiveTab] = useState('storefront'); // 'storefront' | 'wishlists' | 'admin'
+  const [currentUser, setCurrentUser] = useState(() => authService.getCurrentUser());
 
-  // Multi-user profile management
-  const userAccounts = useUserAccounts();
-  const { activeUserId } = userAccounts;
+  // Products catalog from Database Service
+  const [products, setProducts] = useState(() => dbService.getProducts());
 
-  // Custom hook for wishlists & localStorage persistence per user
+  // Refresh database stats/products trigger
+  const refreshDbData = () => {
+    setProducts(dbService.getProducts());
+    setCurrentUser(authService.getCurrentUser());
+  };
+
+  // Custom hook for wishlists & localStorage database persistence per authenticated user
   const {
     wishlists,
     activeWishlistId,
@@ -37,13 +44,14 @@ export default function App() {
     mergeWishlists,
     importSharedWishlist,
     resetToDefaults
-  } = useWishlists(activeUserId);
+  } = useWishlists(currentUser?.id || 'guest-user');
 
   // Modals & Dialog State
   const [quickViewProduct, setQuickViewProduct] = useState(null);
   const [addModalProduct, setAddModalProduct] = useState(null);
   const [isMergeModalOpen, setIsMergeModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [renameListTarget, setRenameListTarget] = useState(null);
   const [deleteListTarget, setDeleteListTarget] = useState(null);
   const [shareListTarget, setShareListTarget] = useState(null);
@@ -117,12 +125,18 @@ export default function App() {
 
   const handleConfirmImportShared = (sharedPayload) => {
     const importedList = importSharedWishlist(sharedPayload);
-    // Clean up share parameter from URL without reload
     const cleanUrl = window.location.origin + window.location.pathname;
     window.history.replaceState({}, document.title, cleanUrl);
     setSharedImportData(null);
     setActiveTab('wishlists');
     showToast(`Imported wishlist "${importedList.name}" to your account!`);
+  };
+
+  const handleSignOut = () => {
+    authService.signOut();
+    setCurrentUser(null);
+    setActiveTab('storefront');
+    showToast('Signed out successfully', 'info');
   };
 
   return (
@@ -134,7 +148,9 @@ export default function App() {
         setActiveTab={setActiveTab}
         wishlists={wishlists}
         activeWishlist={activeWishlist}
-        userAccounts={userAccounts}
+        currentUser={currentUser}
+        onOpenAuthModal={() => setIsAuthModalOpen(true)}
+        onSignOut={handleSignOut}
         onOpenMergeModal={() => setIsMergeModalOpen(true)}
         onResetData={() => {
           resetToDefaults();
@@ -151,7 +167,7 @@ export default function App() {
             onQuickView={(p) => setQuickViewProduct(p)}
             onAddToWishlistClick={handleAddToWishlistClick}
           />
-        ) : (
+        ) : activeTab === 'wishlists' ? (
           <Wishlists
             wishlists={wishlists}
             activeWishlistId={activeWishlistId}
@@ -169,6 +185,12 @@ export default function App() {
             }}
             onQuickView={(p) => setQuickViewProduct(p)}
             onNavigateToStorefront={() => setActiveTab('storefront')}
+          />
+        ) : (
+          <AdminDashboard
+            currentUser={currentUser}
+            onRefreshData={refreshDbData}
+            onShowToast={showToast}
           />
         )}
       </div>
@@ -198,6 +220,18 @@ export default function App() {
           onCreateAndAdd={(name, prodId) => {
             handleCreateAndAdd(name, prodId);
             setAddModalProduct(null);
+          }}
+        />
+      )}
+
+      {/* Sign In / Sign Up Auth Modal */}
+      {isAuthModalOpen && (
+        <AuthModal
+          isOpen={isAuthModalOpen}
+          onClose={() => setIsAuthModalOpen(false)}
+          onAuthSuccess={(user, message) => {
+            setCurrentUser(user);
+            showToast(message);
           }}
         />
       )}
@@ -305,7 +339,7 @@ export default function App() {
       {/* Footer */}
       <footer className="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-400 mt-12">
         <div className="max-w-7xl mx-auto px-4">
-          <p>© 2026 ApexStore • Multi-User Wishlists & Sharing Engine • GitHub Pages Ready</p>
+          <p>© 2026 ApexStore • Real User Authentication, Database & Admin Panel • GitHub Pages Ready</p>
         </div>
       </footer>
 

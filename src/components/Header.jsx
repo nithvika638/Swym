@@ -1,45 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ShoppingBag, Heart, GitMerge, RotateCcw, User, UserPlus, Check, ChevronDown } from 'lucide-react';
+import { ShoppingBag, Heart, GitMerge, RotateCcw, User, LogIn, LogOut, ShieldCheck, ChevronDown } from 'lucide-react';
 
 export default function Header({ 
   activeTab, 
   setActiveTab, 
   wishlists, 
   activeWishlist,
-  userAccounts,
+  currentUser,
+  onOpenAuthModal,
+  onSignOut,
   onOpenMergeModal,
   onResetData
 }) {
-  const { users, activeUser, switchUser, addUser } = userAccounts;
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const [newUserName, setNewUserName] = useState('');
-  const [showAddUserForm, setShowAddUserForm] = useState(false);
-
-  const menuRef = useRef(null);
-
-  // Close dropdown on outside click
-  useEffect(() => {
-    function handleClickOutside(e) {
-      if (menuRef.current && !menuRef.current.contains(e.target)) {
-        setIsUserMenuOpen(false);
-        setShowAddUserForm(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
   const totalWishlists = wishlists.length;
   const activeItemsCount = activeWishlist ? activeWishlist.items.length : 0;
-
-  const handleCreateUser = (e) => {
-    e.preventDefault();
-    if (!newUserName.trim()) return;
-    addUser(newUserName.trim());
-    setNewUserName('');
-    setShowAddUserForm(false);
-    setIsUserMenuOpen(false);
-  };
+  const isAdmin = currentUser?.role === 'admin';
 
   return (
     <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-sm">
@@ -59,7 +34,7 @@ export default function Header({
                 ApexStore
               </span>
               <span className="hidden sm:inline-block ml-2 text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">
-                Wishlist Hub
+                Database Hub
               </span>
             </div>
           </div>
@@ -68,7 +43,7 @@ export default function Header({
           <nav className="flex items-center space-x-1 sm:space-x-2">
             <button
               onClick={() => setActiveTab('storefront')}
-              className={`flex items-center space-x-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${
+              className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                 activeTab === 'storefront'
                   ? 'bg-indigo-50 text-indigo-700 font-semibold shadow-xs'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
@@ -80,7 +55,7 @@ export default function Header({
 
             <button
               onClick={() => setActiveTab('wishlists')}
-              className={`flex items-center space-x-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all relative ${
+              className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-all relative ${
                 activeTab === 'wishlists'
                   ? 'bg-indigo-50 text-indigo-700 font-semibold shadow-xs'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
@@ -94,9 +69,24 @@ export default function Header({
                 </span>
               )}
             </button>
+
+            {/* Admin Dashboard Tab (Only visible to Admin users) */}
+            {isAdmin && (
+              <button
+                onClick={() => setActiveTab('admin')}
+                className={`flex items-center space-x-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                  activeTab === 'admin'
+                    ? 'bg-purple-100 text-purple-800 font-bold shadow-xs'
+                    : 'text-purple-600 hover:bg-purple-50'
+                }`}
+              >
+                <ShieldCheck className="w-4 h-4 text-purple-600" />
+                <span>Admin Panel</span>
+              </button>
+            )}
           </nav>
 
-          {/* Right Utilities & User Account Switcher */}
+          {/* Right Utilities & Authentication Controls */}
           <div className="flex items-center space-x-2 sm:space-x-3">
             
             {totalWishlists >= 2 && (
@@ -110,98 +100,40 @@ export default function Header({
               </button>
             )}
 
-            {/* User Account Switcher Dropdown */}
-            <div className="relative" ref={menuRef}>
-              <button
-                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                className="flex items-center space-x-2 px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition-all text-xs font-semibold text-slate-800"
-              >
-                <span className="text-base">{activeUser.avatar || '👤'}</span>
-                <span className="hidden sm:inline font-bold truncate max-w-[100px]">{activeUser.name}</span>
-                <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-              </button>
-
-              {/* Dropdown Menu */}
-              {isUserMenuOpen && (
-                <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-slate-100 p-2 z-50 animate-fade-in space-y-1">
-                  <div className="px-3 py-2 border-b border-slate-100">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                      Switch Active Account Profile:
+            {/* User Account Controls */}
+            {currentUser ? (
+              <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2 px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-800">
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-[11px] font-bold ${
+                    isAdmin ? 'bg-purple-600' : 'bg-indigo-600'
+                  }`}>
+                    {currentUser.name.charAt(0)}
+                  </div>
+                  <span className="hidden sm:inline font-bold truncate max-w-[100px]">{currentUser.name}</span>
+                  {isAdmin && (
+                    <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase rounded-md bg-purple-100 text-purple-800 border border-purple-200">
+                      Admin
                     </span>
-                  </div>
-
-                  {/* List of Accounts */}
-                  <div className="max-h-48 overflow-y-auto space-y-1">
-                    {users.map((u) => {
-                      const isSelected = u.id === activeUser.id;
-                      return (
-                        <button
-                          key={u.id}
-                          onClick={() => {
-                            switchUser(u.id);
-                            setIsUserMenuOpen(false);
-                          }}
-                          className={`w-full flex items-center justify-between p-2 rounded-xl text-xs font-medium transition-colors ${
-                            isSelected
-                              ? 'bg-indigo-50 text-indigo-900 font-bold'
-                              : 'text-slate-700 hover:bg-slate-50'
-                          }`}
-                        >
-                          <div className="flex items-center space-x-2.5 min-w-0">
-                            <span className="text-base">{u.avatar}</span>
-                            <div className="text-left min-w-0">
-                              <span className="block truncate font-semibold">{u.name}</span>
-                              <span className="text-[10px] text-slate-400 block truncate">{u.email}</span>
-                            </div>
-                          </div>
-                          {isSelected && <Check className="w-4 h-4 text-indigo-600 stroke-[3]" />}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* Add New User Section */}
-                  <div className="pt-2 border-t border-slate-100">
-                    {showAddUserForm ? (
-                      <form onSubmit={handleCreateUser} className="p-1 space-y-2">
-                        <input
-                          type="text"
-                          placeholder="Account Name (e.g. Jordan)"
-                          value={newUserName}
-                          onChange={(e) => setNewUserName(e.target.value)}
-                          autoFocus
-                          className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                        />
-                        <div className="flex space-x-1">
-                          <button
-                            type="submit"
-                            className="flex-1 py-1 bg-indigo-600 text-white rounded-lg text-[11px] font-bold"
-                          >
-                            Add Account
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setShowAddUserForm(false)}
-                            className="px-2 py-1 bg-slate-100 text-slate-600 rounded-lg text-[11px]"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </form>
-                    ) : (
-                      <button
-                        onClick={() => setShowAddUserForm(true)}
-                        className="w-full flex items-center space-x-2 p-2 rounded-xl text-xs font-semibold text-indigo-600 hover:bg-indigo-50 transition-colors"
-                      >
-                        <UserPlus className="w-3.5 h-3.5" />
-                        <span>Add New Account Profile...</span>
-                      </button>
-                    )}
-                  </div>
-
+                  )}
                 </div>
-              )}
-            </div>
+
+                <button
+                  onClick={onSignOut}
+                  className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 transition-colors"
+                  title="Sign Out"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={onOpenAuthModal}
+                className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all shadow-xs"
+              >
+                <LogIn className="w-4 h-4" />
+                <span>Sign In / Register</span>
+              </button>
+            )}
 
             <button
               onClick={onResetData}
@@ -209,7 +141,7 @@ export default function Header({
               title="Reset state to initial sample data"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              <span className="hidden md:inline">Reset Demo</span>
+              <span className="hidden lg:inline">Reset Demo</span>
             </button>
 
           </div>
