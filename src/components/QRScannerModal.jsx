@@ -14,19 +14,20 @@ export default function QRScannerModal({
   const [statusMessage, setStatusMessage] = useState('Point camera at a wishlist QR code...');
   
   const scannerRef = useRef(null);
+  const hasScannedRef = useRef(false); // Guard: prevent firing onScanSuccess multiple times
   const regionId = 'qr-reader-container';
 
   useEffect(() => {
     if (!isOpen || scanMode !== 'camera') return;
 
-    let html5Qrcode = null;
+    hasScannedRef.current = false; // Reset on each open
 
     const startCameraScanner = async () => {
       setCameraError('');
       setStatusMessage('Point camera at a wishlist QR code...');
 
       try {
-        html5Qrcode = new Html5Qrcode(regionId);
+        const html5Qrcode = new Html5Qrcode(regionId);
         scannerRef.current = html5Qrcode;
 
         const config = { fps: 10, qrbox: { width: 220, height: 220 } };
@@ -35,22 +36,28 @@ export default function QRScannerModal({
           { facingMode: "environment" },
           config,
           (decodedText) => {
-            // Frame decoded by camera! Check if it's a valid wishlist
+            // Guard: don't fire after first valid scan
+            if (hasScannedRef.current) return;
+
             const payload = decodeWishlistFromShareUrl(decodedText);
             if (payload) {
-              // Valid Wishlist QR Code found! Stop camera & trigger success
+              hasScannedRef.current = true;
+              // Stop camera first, THEN notify parent via onScanSuccess
+              // Parent (App.jsx) will handle closing the modal and opening ImportModal
               if (scannerRef.current) {
-                scannerRef.current.stop().catch(() => {});
+                scannerRef.current.stop().catch(() => {}).finally(() => {
+                  scannerRef.current = null;
+                  onScanSuccess(payload);
+                });
+              } else {
+                onScanSuccess(payload);
               }
-              onScanSuccess(payload);
-              onClose();
             } else {
-              // Non-wishlist QR code frame detected - keep camera running!
               setStatusMessage('Non-wishlist QR code detected. Please point at a wishlist QR code.');
             }
           },
-          (errorMessage) => {
-            // Ignore scan frame errors (normal while searching for QR codes)
+          () => {
+            // Ignore per-frame scan errors (normal while camera is searching)
           }
         );
       } catch (err) {
@@ -84,8 +91,8 @@ export default function QRScannerModal({
       
       const payload = decodeWishlistFromShareUrl(decodedText);
       if (payload) {
+        // Notify parent — parent will close the scanner and open ImportModal sequentially
         onScanSuccess(payload);
-        onClose();
       } else {
         setFileError("The selected image does not contain a valid wishlist QR code.");
       }

@@ -286,8 +286,14 @@ export default function App() {
           isOpen={isQRScannerOpen}
           onClose={() => setIsQRScannerOpen(false)}
           onScanSuccess={(decodedPayload) => {
-            setSharedImportData(decodedPayload);
-            showToast("QR Code scanned! Previewing shared wishlist...", "info");
+            // Step 1: Close the scanner immediately
+            setIsQRScannerOpen(false);
+            // Step 2: After the scanner fully unmounts (camera cleanup completes),
+            // set the import data to open the ImportSharedWishlistModal
+            setTimeout(() => {
+              setSharedImportData(decodedPayload);
+              showToast("Wishlist QR scanned! Review and import below.", "info");
+            }, 200);
           }}
         />
       )}
