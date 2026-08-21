@@ -18,11 +18,27 @@ import { decodeWishlistFromShareUrl } from './utils/wishlistUtils';
 import { CheckCircle2, Heart, AlertCircle, X } from 'lucide-react';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('storefront'); // 'storefront' | 'wishlists' | 'admin'
+  // Current Tab / Route: 'storefront' | 'wishlists' | 'admin'
+  const [activeTab, setActiveTab] = useState(() => {
+    return window.location.hash === '#admin' ? 'admin' : 'storefront';
+  });
+
+  // Current authenticated user (Default: null / Guest)
   const [currentUser, setCurrentUser] = useState(() => authService.getCurrentUser());
 
   // Products catalog from Database Service
   const [products, setProducts] = useState(() => dbService.getProducts());
+
+  // Listen to hash changes (e.g. #admin)
+  useEffect(() => {
+    const handleHashChange = () => {
+      if (window.location.hash === '#admin') {
+        setActiveTab('admin');
+      }
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
   // Refresh database stats/products trigger
   const refreshDbData = () => {
@@ -30,7 +46,7 @@ export default function App() {
     setCurrentUser(authService.getCurrentUser());
   };
 
-  // Custom hook for wishlists & localStorage database persistence per authenticated user
+  // Custom hook for wishlists & database persistence for currently logged-in user
   const {
     wishlists,
     activeWishlistId,
@@ -43,8 +59,8 @@ export default function App() {
     deleteWishlist,
     mergeWishlists,
     importSharedWishlist,
-    resetToDefaults
-  } = useWishlists(currentUser?.id || 'guest-user');
+    clearWishlists
+  } = useWishlists(currentUser?.id || null);
 
   // Modals & Dialog State
   const [quickViewProduct, setQuickViewProduct] = useState(null);
@@ -77,6 +93,13 @@ export default function App() {
 
   // Handlers
   const handleAddToWishlistClick = (product) => {
+    if (!currentUser) {
+      // Prompt Guest to Sign In to save wishlists to database
+      setIsAuthModalOpen(true);
+      showToast("Please Sign In or Register to save products to your wishlists!", "info");
+      return;
+    }
+
     if (wishlists.length === 1) {
       const res = addItem(wishlists[0].id, product.id);
       if (res.alreadyExisted) {
@@ -124,6 +147,12 @@ export default function App() {
   };
 
   const handleConfirmImportShared = (sharedPayload) => {
+    if (!currentUser) {
+      setIsAuthModalOpen(true);
+      showToast("Please Sign In or Register to import this wishlist!", "info");
+      return;
+    }
+
     const importedList = importSharedWishlist(sharedPayload);
     const cleanUrl = window.location.origin + window.location.pathname;
     window.history.replaceState({}, document.title, cleanUrl);
@@ -136,6 +165,7 @@ export default function App() {
     authService.signOut();
     setCurrentUser(null);
     setActiveTab('storefront');
+    window.location.hash = '';
     showToast('Signed out successfully', 'info');
   };
 
@@ -153,8 +183,8 @@ export default function App() {
         onSignOut={handleSignOut}
         onOpenMergeModal={() => setIsMergeModalOpen(true)}
         onResetData={() => {
-          resetToDefaults();
-          showToast('Wishlists reset to default sample data', 'info');
+          clearWishlists();
+          showToast('Wishlists reset for active user', 'info');
         }}
       />
 
@@ -174,7 +204,14 @@ export default function App() {
             activeWishlist={activeWishlist}
             products={products}
             onSelectWishlist={(id) => setActiveWishlistId(id)}
-            onCreateWishlistClick={() => setIsCreateModalOpen(true)}
+            onCreateWishlistClick={() => {
+              if (!currentUser) {
+                setIsAuthModalOpen(true);
+                showToast("Please Sign In to create wishlists!", "info");
+              } else {
+                setIsCreateModalOpen(true);
+              }
+            }}
             onRenameWishlistClick={(wl) => setRenameListTarget(wl)}
             onDeleteWishlistClick={(wl) => setDeleteListTarget(wl)}
             onMergeWishlistsClick={() => setIsMergeModalOpen(true)}
@@ -189,6 +226,10 @@ export default function App() {
         ) : (
           <AdminDashboard
             currentUser={currentUser}
+            onAdminLoginSuccess={(adminUser) => {
+              setCurrentUser(adminUser);
+              refreshDbData();
+            }}
             onRefreshData={refreshDbData}
             onShowToast={showToast}
           />
@@ -339,7 +380,7 @@ export default function App() {
       {/* Footer */}
       <footer className="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-400 mt-12">
         <div className="max-w-7xl mx-auto px-4">
-          <p>© 2026 ApexStore • Real User Authentication, Database & Admin Panel • GitHub Pages Ready</p>
+          <p>© 2026 ApexStore • Multi-User Database & Admin Portal • GitHub Pages Ready</p>
         </div>
       </footer>
 

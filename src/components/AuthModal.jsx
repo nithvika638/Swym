@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Lock, Mail, User, ShieldCheck, ArrowRight, AlertCircle } from 'lucide-react';
+import { X, Lock, Mail, User, ArrowRight, AlertCircle } from 'lucide-react';
 import { authService } from '../services/authService';
 
 export default function AuthModal({ 
@@ -22,7 +22,7 @@ export default function AuthModal({
     try {
       if (mode === 'signup') {
         const user = authService.signUp(name, email, password);
-        onAuthSuccess(user, 'Account created & signed in successfully!');
+        onAuthSuccess(user, 'Account registered & signed in successfully!');
       } else {
         const user = authService.signIn(email, password);
         onAuthSuccess(user, `Welcome back, ${user.name}!`);
@@ -30,16 +30,6 @@ export default function AuthModal({
       onClose();
     } catch (err) {
       setError(err.message || 'Authentication failed');
-    }
-  };
-
-  const handleDemoSignIn = (demoEmail, demoPassword) => {
-    try {
-      const user = authService.signIn(demoEmail, demoPassword);
-      onAuthSuccess(user, `Signed in as ${user.name} (${user.role.toUpperCase()})`);
-      onClose();
-    } catch (err) {
-      setError(err.message);
     }
   };
 
@@ -60,7 +50,7 @@ export default function AuthModal({
                 {mode === 'signin' ? 'Sign In to ApexStore' : 'Create an Account'}
               </h3>
               <p className="text-xs text-slate-500">
-                {mode === 'signin' ? 'Enter your credentials to access your wishlists.' : 'Register a new account to save custom wishlists.'}
+                {mode === 'signin' ? 'Enter your credentials to access your wishlists.' : 'Register a new account to save your personal wishlists.'}
               </p>
             </div>
           </div>
@@ -119,7 +109,7 @@ export default function AuthModal({
                 <input
                   type="text"
                   required
-                  placeholder="e.g. John Doe"
+                  placeholder="e.g. Jane Doe"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="w-full pl-9 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:bg-white focus:outline-none"
@@ -166,33 +156,6 @@ export default function AuthModal({
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>
-
-        {/* Quick Demo Sign In Buttons */}
-        <div className="pt-3 border-t border-slate-100 space-y-2">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block text-center">
-            Quick One-Click Demo Logins:
-          </span>
-
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => handleDemoSignIn('admin@apexstore.com', 'admin123')}
-              className="py-2 px-3 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors"
-            >
-              <ShieldCheck className="w-3.5 h-3.5 text-purple-600" />
-              <span>Demo Admin</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleDemoSignIn('alex@example.com', 'user123')}
-              className="py-2 px-3 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-200 text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors"
-            >
-              <User className="w-3.5 h-3.5 text-indigo-600" />
-              <span>Demo User</span>
-            </button>
-          </div>
-        </div>
 
       </div>
     </div>

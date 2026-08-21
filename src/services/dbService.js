@@ -1,37 +1,19 @@
 import { INITIAL_PRODUCTS } from '../data/products';
 
-const STORAGE_USERS = 'apex_db_users_v1';
-const STORAGE_WISHLISTS_PREFIX = 'apex_db_wishlists_';
-const STORAGE_PRODUCTS = 'apex_db_products_v1';
-const STORAGE_SESSION = 'apex_db_session_v1';
+const STORAGE_USERS = 'apex_db_users_v2';
+const STORAGE_WISHLISTS_PREFIX = 'apex_db_wishlists_v2_';
+const STORAGE_PRODUCTS = 'apex_db_products_v2';
+const STORAGE_SESSION = 'apex_db_session_v2';
 
-// Seed Initial Admin and Demo Users
-const DEFAULT_USERS = [
-  {
-    id: 'user-admin',
-    name: 'System Admin',
-    email: 'admin@apexstore.com',
-    password: 'admin123',
-    role: 'admin',
-    createdAt: new Date(Date.now() - 86400000 * 30).toISOString()
-  },
-  {
-    id: 'user-alex',
-    name: 'Alex Johnson',
-    email: 'alex@example.com',
-    password: 'user123',
-    role: 'user',
-    createdAt: new Date(Date.now() - 86400000 * 10).toISOString()
-  },
-  {
-    id: 'user-sarah',
-    name: 'Sarah Miller',
-    email: 'sarah@example.com',
-    password: 'user123',
-    role: 'user',
-    createdAt: new Date(Date.now() - 86400000 * 5).toISOString()
-  }
-];
+// System Admin Account
+const SEEDED_ADMIN_USER = {
+  id: 'user-admin',
+  name: 'System Admin',
+  email: 'admin@apexstore.com',
+  password: 'admin123',
+  role: 'admin',
+  createdAt: new Date(Date.now() - 86400000 * 30).toISOString()
+};
 
 export const dbService = {
   // --- USERS ---
@@ -47,9 +29,10 @@ export const dbService = {
     } catch (e) {
       console.warn("Failed to load users from DB:", e);
     }
-    // Save default users
-    localStorage.setItem(STORAGE_USERS, JSON.stringify(DEFAULT_USERS));
-    return DEFAULT_USERS;
+    // Save seeded admin user
+    const initialUsers = [SEEDED_ADMIN_USER];
+    localStorage.setItem(STORAGE_USERS, JSON.stringify(initialUsers));
+    return initialUsers;
   },
 
   saveUser(user) {
@@ -77,7 +60,7 @@ export const dbService = {
 
   // --- WISHLISTS ---
   getUserWishlists(userId) {
-    if (!userId) return [];
+    if (!userId || userId === 'guest-user') return [];
     try {
       const saved = localStorage.getItem(`${STORAGE_WISHLISTS_PREFIX}${userId}`);
       if (saved) {
@@ -87,22 +70,12 @@ export const dbService = {
     } catch (e) {
       console.warn(`Failed to load wishlists for ${userId}:`, e);
     }
-    // Return sample seed wishlists for new users
-    return [
-      {
-        id: `wishlist-${userId}-1`,
-        name: 'My Favorites',
-        createdAt: new Date().toISOString(),
-        items: [
-          { productId: 'prod-1', addedAt: new Date().toISOString() },
-          { productId: 'prod-2', addedAt: new Date().toISOString() }
-        ]
-      }
-    ];
+    // New users start with 0 wishlists!
+    return [];
   },
 
   saveUserWishlists(userId, wishlists) {
-    if (!userId) return;
+    if (!userId || userId === 'guest-user') return;
     try {
       localStorage.setItem(`${STORAGE_WISHLISTS_PREFIX}${userId}`, JSON.stringify(wishlists));
     } catch (e) {
@@ -168,8 +141,8 @@ export const dbService = {
       const saved = localStorage.getItem(STORAGE_SESSION);
       if (saved) return JSON.parse(saved);
     } catch (e) {}
-    // Default session: Alex Johnson
-    return { userId: 'user-alex' };
+    // Default session is NULL (Guest initial state!)
+    return null;
   },
 
   setSession(session) {

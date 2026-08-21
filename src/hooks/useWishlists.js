@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
+import { dbService } from '../services/dbService';
 import {
-  DEFAULT_WISHLISTS,
   validateWishlistsData,
   createWishlist,
   addItemToWishlist,
@@ -10,56 +10,26 @@ import {
   mergeWishlists
 } from '../utils/wishlistUtils';
 
-export function useWishlists(userId = 'default-user') {
-  const storageKeyWishlists = `apex_store_wishlists_${userId}_v2`;
-  const storageKeyActiveId = `apex_store_active_id_${userId}_v2`;
-
+export function useWishlists(userId = null) {
   const [wishlists, setWishlists] = useState(() => {
-    try {
-      const saved = localStorage.getItem(storageKeyWishlists);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        const validated = validateWishlistsData(parsed);
-        if (validated && validated.length > 0) {
-          return validated;
-        }
-      }
-    } catch (e) {
-      console.warn(`Failed to load wishlists for ${userId}:`, e);
-    }
-    return DEFAULT_WISHLISTS;
+    if (!userId) return [];
+    return dbService.getUserWishlists(userId);
   });
 
   const [activeWishlistId, setActiveWishlistId] = useState(() => {
-    try {
-      const savedActive = localStorage.getItem(storageKeyActiveId);
-      if (savedActive && wishlists.some(w => w.id === savedActive)) {
-        return savedActive;
-      }
-    } catch (e) {
-      console.warn(`Failed to load active wishlist ID for ${userId}:`, e);
-    }
-    return wishlists.length > 0 ? wishlists[0].id : null;
+    const loaded = userId ? dbService.getUserWishlists(userId) : [];
+    return loaded.length > 0 ? loaded[0].id : null;
   });
 
-  // Re-sync when userId changes
+  // Re-sync wishlists when userId changes (e.g. User logs in or out)
   useEffect(() => {
-    try {
-      const savedWishlists = localStorage.getItem(storageKeyWishlists);
-      if (savedWishlists) {
-        const parsed = JSON.parse(savedWishlists);
-        const validated = validateWishlistsData(parsed);
-        setWishlists(validated);
-      } else {
-        setWishlists(DEFAULT_WISHLISTS);
-      }
-
-      const savedActive = localStorage.getItem(storageKeyActiveId);
-      if (savedActive) {
-        setActiveWishlistId(savedActive);
-      }
-    } catch (e) {
-      console.warn("Failed to switch user storage scope:", e);
+    if (userId) {
+      const userLists = dbService.getUserWishlists(userId);
+      setWishlists(userLists);
+      setActiveWishlistId(userLists.length > 0 ? userLists[0].id : null);
+    } else {
+      setWishlists([]);
+      setActiveWishlistId(null);
     }
   }, [userId]);
 
@@ -74,27 +44,12 @@ export function useWishlists(userId = 'default-user') {
     }
   }, [wishlists, activeWishlistId]);
 
-  // Persist wishlists state to localStorage per user
+  // Persist wishlists to Database Service per user
   useEffect(() => {
-    try {
-      localStorage.setItem(storageKeyWishlists, JSON.stringify(wishlists));
-    } catch (e) {
-      console.error("Failed to save wishlists to localStorage:", e);
+    if (userId) {
+      dbService.saveUserWishlists(userId, wishlists);
     }
-  }, [wishlists, storageKeyWishlists]);
-
-  // Persist activeWishlistId to localStorage per user
-  useEffect(() => {
-    try {
-      if (activeWishlistId) {
-        localStorage.setItem(storageKeyActiveId, activeWishlistId);
-      } else {
-        localStorage.removeItem(storageKeyActiveId);
-      }
-    } catch (e) {
-      console.error("Failed to save active wishlist ID to localStorage:", e);
-    }
-  }, [activeWishlistId, storageKeyActiveId]);
+  }, [wishlists, userId]);
 
   // Active Wishlist Object helper
   const activeWishlist = wishlists.find(w => w.id === activeWishlistId) || null;
@@ -110,7 +65,7 @@ export function useWishlists(userId = 'default-user') {
   const handleAddItem = (wishlistId, productId) => {
     const targetId = wishlistId || activeWishlistId;
     if (!targetId && wishlists.length === 0) {
-      // If no wishlists exist, auto-create one first
+      // If no wishlists exist, create first wishlist
       const { updatedWishlists, newWishlist } = createWishlist(wishlists, "My Wishlist");
       const { updatedWishlists: finalWishlists } = addItemToWishlist(updatedWishlists, newWishlist.id, productId);
       setWishlists(finalWishlists);
@@ -172,11 +127,12 @@ export function useWishlists(userId = 'default-user') {
     return newWishlist;
   };
 
-  const handleResetToDefaults = () => {
-    setWishlists(DEFAULT_WISHLISTS);
-    setActiveWishlistId(DEFAULT_WISHLISTS[0].id);
-    localStorage.removeItem(storageKeyWishlists);
-    localStorage.removeItem(storageKeyActiveId);
+  const handleClearWishlists = () => {
+    setWishlists([]);
+    setActiveWishlistId(null);
+    if (userId) {
+      dbService.saveUserWishlists(userId, []);
+    }
   };
 
   return {
@@ -191,6 +147,6 @@ export function useWishlists(userId = 'default-user') {
     deleteWishlist: handleDeleteWishlist,
     mergeWishlists: handleMergeWishlists,
     importSharedWishlist: handleImportSharedWishlist,
-    resetToDefaults: handleResetToDefaults
+    clearWishlists: handleClearWishlists
   };
 }

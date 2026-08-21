@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { ShoppingBag, Heart, GitMerge, RotateCcw, User, LogIn, LogOut, ShieldCheck, ChevronDown } from 'lucide-react';
+import React from 'react';
+import { ShoppingBag, Heart, GitMerge, RotateCcw, LogIn, LogOut, ShieldCheck } from 'lucide-react';
 
 export default function Header({ 
   activeTab, 
@@ -23,7 +23,10 @@ export default function Header({
           
           {/* Logo & Brand */}
           <div 
-            onClick={() => setActiveTab('storefront')}
+            onClick={() => {
+              window.location.hash = '';
+              setActiveTab('storefront');
+            }}
             className="flex items-center space-x-3 cursor-pointer group"
           >
             <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-md shadow-indigo-200 group-hover:scale-105 transition-transform">
@@ -34,7 +37,7 @@ export default function Header({
                 ApexStore
               </span>
               <span className="hidden sm:inline-block ml-2 text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">
-                Database Hub
+                Storefront
               </span>
             </div>
           </div>
@@ -42,8 +45,11 @@ export default function Header({
           {/* Center Navigation Tabs */}
           <nav className="flex items-center space-x-1 sm:space-x-2">
             <button
-              onClick={() => setActiveTab('storefront')}
-              className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+              onClick={() => {
+                window.location.hash = '';
+                setActiveTab('storefront');
+              }}
+              className={`flex items-center space-x-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${
                 activeTab === 'storefront'
                   ? 'bg-indigo-50 text-indigo-700 font-semibold shadow-xs'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
@@ -54,8 +60,11 @@ export default function Header({
             </button>
 
             <button
-              onClick={() => setActiveTab('wishlists')}
-              className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-all relative ${
+              onClick={() => {
+                window.location.hash = '';
+                setActiveTab('wishlists');
+              }}
+              className={`flex items-center space-x-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all relative ${
                 activeTab === 'wishlists'
                   ? 'bg-indigo-50 text-indigo-700 font-semibold shadow-xs'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
@@ -70,10 +79,13 @@ export default function Header({
               )}
             </button>
 
-            {/* Admin Dashboard Tab (Only visible to Admin users) */}
-            {isAdmin && (
+            {/* Admin Portal Nav Tab */}
+            {(isAdmin || activeTab === 'admin') && (
               <button
-                onClick={() => setActiveTab('admin')}
+                onClick={() => {
+                  window.location.hash = 'admin';
+                  setActiveTab('admin');
+                }}
                 className={`flex items-center space-x-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                   activeTab === 'admin'
                     ? 'bg-purple-100 text-purple-800 font-bold shadow-xs'
@@ -81,12 +93,12 @@ export default function Header({
                 }`}
               >
                 <ShieldCheck className="w-4 h-4 text-purple-600" />
-                <span>Admin Panel</span>
+                <span>Admin Portal</span>
               </button>
             )}
           </nav>
 
-          {/* Right Utilities & Authentication Controls */}
+          {/* Right Utilities & Auth Controls */}
           <div className="flex items-center space-x-2 sm:space-x-3">
             
             {totalWishlists >= 2 && (
@@ -100,7 +112,7 @@ export default function Header({
               </button>
             )}
 
-            {/* User Account Controls */}
+            {/* User Auth Controls */}
             {currentUser ? (
               <div className="flex items-center space-x-2">
                 <div className="flex items-center space-x-2 px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-800">
@@ -137,11 +149,11 @@ export default function Header({
 
             <button
               onClick={onResetData}
-              className="hidden sm:flex items-center space-x-1 text-xs font-medium text-slate-500 hover:text-slate-800 px-2 py-1.5 rounded-md hover:bg-slate-100 transition-colors"
+              className="hidden lg:flex items-center space-x-1 text-xs font-medium text-slate-500 hover:text-slate-800 px-2 py-1.5 rounded-md hover:bg-slate-100 transition-colors"
               title="Reset state to initial sample data"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              <span className="hidden lg:inline">Reset Demo</span>
+              <span>Reset Demo</span>
             </button>
 
           </div>
