@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Camera, Upload, QrCode, AlertCircle } from 'lucide-react';
+import { X, Camera, Upload, QrCode, AlertCircle, Sparkles } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { decodeWishlistFromShareUrl } from '../utils/wishlistUtils';
 
@@ -10,10 +10,10 @@ export default function QRScannerModal({
 }) {
   const [scanMode, setScanMode] = useState('camera'); // 'camera' | 'file'
   const [cameraError, setCameraError] = useState('');
-  const [isScanning, setIsScanning] = useState(false);
   const [fileError, setFileError] = useState('');
+  const [statusMessage, setStatusMessage] = useState('Point camera at a wishlist QR code...');
+  
   const scannerRef = useRef(null);
-
   const regionId = 'qr-reader-container';
 
   useEffect(() => {
@@ -23,7 +23,7 @@ export default function QRScannerModal({
 
     const startCameraScanner = async () => {
       setCameraError('');
-      setIsScanning(true);
+      setStatusMessage('Point camera at a wishlist QR code...');
 
       try {
         html5Qrcode = new Html5Qrcode(regionId);
@@ -35,16 +35,27 @@ export default function QRScannerModal({
           { facingMode: "environment" },
           config,
           (decodedText) => {
-            handleDecodedResult(decodedText);
+            // Frame decoded by camera! Check if it's a valid wishlist
+            const payload = decodeWishlistFromShareUrl(decodedText);
+            if (payload) {
+              // Valid Wishlist QR Code found! Stop camera & trigger success
+              if (scannerRef.current) {
+                scannerRef.current.stop().catch(() => {});
+              }
+              onScanSuccess(payload);
+              onClose();
+            } else {
+              // Non-wishlist QR code frame detected - keep camera running!
+              setStatusMessage('Non-wishlist QR code detected. Please point at a wishlist QR code.');
+            }
           },
           (errorMessage) => {
-            // Ignore frame scan errors
+            // Ignore scan frame errors (normal while searching for QR codes)
           }
         );
       } catch (err) {
         console.warn("Camera scanner start failed:", err);
-        setCameraError("Camera access denied or unavailable. You can use the Upload Image tab below to select a QR code image!");
-        setIsScanning(false);
+        setCameraError("Camera access denied or unavailable. You can use the 'Upload Image' tab to select a QR code photo!");
       }
     };
 
@@ -62,23 +73,6 @@ export default function QRScannerModal({
 
   if (!isOpen) return null;
 
-  const handleDecodedResult = (text) => {
-    // Stop camera scanner
-    if (scannerRef.current) {
-      scannerRef.current.stop().catch(() => {});
-    }
-
-    const payload = decodeWishlistFromShareUrl(text);
-
-    if (payload) {
-      onScanSuccess(payload);
-      onClose();
-    } else {
-      setCameraError("Scanned QR code is not a valid wishlist format.");
-      setFileError("Scanned QR code is not a valid wishlist format.");
-    }
-  };
-
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -87,9 +81,16 @@ export default function QRScannerModal({
     try {
       const html5Qrcode = new Html5Qrcode("file-qr-temp");
       const decodedText = await html5Qrcode.scanFile(file, true);
-      handleDecodedResult(decodedText);
+      
+      const payload = decodeWishlistFromShareUrl(decodedText);
+      if (payload) {
+        onScanSuccess(payload);
+        onClose();
+      } else {
+        setFileError("The selected image does not contain a valid wishlist QR code.");
+      }
     } catch (err) {
-      setFileError("Could not detect a valid QR Code in the selected image. Please try another image.");
+      setFileError("Could not detect a QR Code in the selected image. Please upload a clear photo or screenshot of the QR code.");
     }
   };
 
@@ -157,16 +158,18 @@ export default function QRScannerModal({
               <div id={regionId} className="w-full h-full overflow-hidden" />
 
               {cameraError && (
-                <div className="absolute inset-0 p-6 bg-slate-900/90 text-white flex flex-col items-center justify-center text-center space-y-3">
+                <div className="absolute inset-0 p-6 bg-slate-900/95 text-white flex flex-col items-center justify-center text-center space-y-3">
                   <AlertCircle className="w-8 h-8 text-rose-400" />
                   <p className="text-xs text-slate-300 leading-relaxed">{cameraError}</p>
                 </div>
               )}
             </div>
 
-            <p className="text-[11px] text-slate-500 text-center leading-relaxed">
-              Position the QR code inside the viewfinder box above to scan automatically.
-            </p>
+            {/* Non-blocking Status Indicator below Viewfinder */}
+            <div className="p-3 bg-indigo-50 rounded-xl border border-indigo-100 text-center flex items-center justify-center space-x-2">
+              <Sparkles className="w-4 h-4 text-indigo-600 animate-pulse shrink-0" />
+              <span className="text-xs font-semibold text-indigo-900">{statusMessage}</span>
+            </div>
           </div>
         )}
 
@@ -197,7 +200,7 @@ export default function QRScannerModal({
             </div>
 
             {fileError && (
-              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center space-x-2">
+              <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center space-x-2">
                 <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
                 <span>{fileError}</span>
               </div>

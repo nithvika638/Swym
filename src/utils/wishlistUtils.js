@@ -282,7 +282,7 @@ export function decodeWishlistFromShareUrl(rawInput) {
   try {
     let b64Payload = null;
 
-    // Check if rawInput is a full URL or query string containing 'share='
+    // Extract share query parameter if input contains 'share='
     if (rawInput.includes('share=')) {
       const match = rawInput.match(/[?&]share=([^&]+)/);
       if (match && match[1]) {
@@ -293,7 +293,8 @@ export function decodeWishlistFromShareUrl(rawInput) {
     }
 
     if (b64Payload) {
-      // Strip leading query keys if any
+      // Decode URL encoding first
+      b64Payload = decodeURIComponent(b64Payload);
       b64Payload = b64Payload.replace(/^[?&]?share=/, '');
 
       let jsonStr = '';
@@ -303,7 +304,7 @@ export function decodeWishlistFromShareUrl(rawInput) {
         try {
           jsonStr = atob(b64Payload);
         } catch (e2) {
-          jsonStr = b64Payload; // Might already be raw JSON
+          jsonStr = b64Payload; // Raw JSON fallback
         }
       }
 
@@ -318,7 +319,7 @@ export function decodeWishlistFromShareUrl(rawInput) {
       }
     }
   } catch (e) {
-    console.warn("Failed to decode wishlist payload:", e);
+    // Fail silently on non-wishlist frames
   }
 
   return null;
