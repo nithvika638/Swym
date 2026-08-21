@@ -263,7 +263,6 @@ export function encodeWishlistToShareUrl(wishlist) {
     };
 
     const jsonStr = JSON.stringify(payload);
-    // Encode to base64 safely
     const b64 = btoa(encodeURIComponent(jsonStr));
 
     const baseUrl = window.location.origin + window.location.pathname;
@@ -275,27 +274,52 @@ export function encodeWishlistToShareUrl(wishlist) {
 }
 
 /**
- * Decodes a share parameter string into a wishlist object preview
+ * Robustly decodes a share parameter string or full URL or raw Base64 into a wishlist object payload
  */
-export function decodeWishlistFromShareUrl(searchString) {
+export function decodeWishlistFromShareUrl(rawInput) {
+  if (!rawInput || typeof rawInput !== 'string') return null;
+
   try {
-    const params = new URLSearchParams(searchString || window.location.search);
-    const shareParam = params.get('share');
+    let b64Payload = null;
 
-    if (!shareParam) return null;
+    // Check if rawInput is a full URL or query string containing 'share='
+    if (rawInput.includes('share=')) {
+      const match = rawInput.match(/[?&]share=([^&]+)/);
+      if (match && match[1]) {
+        b64Payload = match[1];
+      }
+    } else {
+      b64Payload = rawInput.trim();
+    }
 
-    const jsonStr = decodeURIComponent(atob(shareParam));
-    const payload = JSON.parse(jsonStr);
+    if (b64Payload) {
+      // Strip leading query keys if any
+      b64Payload = b64Payload.replace(/^[?&]?share=/, '');
 
-    if (payload && typeof payload.name === 'string' && Array.isArray(payload.items)) {
-      return {
-        name: payload.name.trim() || 'Shared Wishlist',
-        items: payload.items.filter(id => typeof id === 'string'),
-        createdAt: payload.createdAt || new Date().toISOString()
-      };
+      let jsonStr = '';
+      try {
+        jsonStr = decodeURIComponent(atob(b64Payload));
+      } catch (e1) {
+        try {
+          jsonStr = atob(b64Payload);
+        } catch (e2) {
+          jsonStr = b64Payload; // Might already be raw JSON
+        }
+      }
+
+      const payload = JSON.parse(jsonStr);
+
+      if (payload && typeof payload.name === 'string' && Array.isArray(payload.items)) {
+        return {
+          name: payload.name.trim() || 'Shared Wishlist',
+          items: payload.items.filter(id => typeof id === 'string'),
+          createdAt: payload.createdAt || new Date().toISOString()
+        };
+      }
     }
   } catch (e) {
-    console.warn("Failed to decode share URL payload:", e);
+    console.warn("Failed to decode wishlist payload:", e);
   }
+
   return null;
 }

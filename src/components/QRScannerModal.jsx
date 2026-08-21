@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Camera, Upload, QrCode, AlertCircle, RefreshCw } from 'lucide-react';
+import { X, Camera, Upload, QrCode, AlertCircle } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { decodeWishlistFromShareUrl } from '../utils/wishlistUtils';
 
@@ -35,21 +35,19 @@ export default function QRScannerModal({
           { facingMode: "environment" },
           config,
           (decodedText) => {
-            // QR Code Scanned Successfully!
             handleDecodedResult(decodedText);
           },
           (errorMessage) => {
-            // Scan frame ignore
+            // Ignore frame scan errors
           }
         );
       } catch (err) {
         console.warn("Camera scanner start failed:", err);
-        setCameraError("Camera access denied or unavailable. You can use the File Upload tab below to select a QR code image!");
+        setCameraError("Camera access denied or unavailable. You can use the Upload Image tab below to select a QR code image!");
         setIsScanning(false);
       }
     };
 
-    // Small delay to ensure DOM element rendered
     const timer = setTimeout(startCameraScanner, 300);
 
     return () => {
@@ -65,17 +63,12 @@ export default function QRScannerModal({
   if (!isOpen) return null;
 
   const handleDecodedResult = (text) => {
-    // Stop camera
+    // Stop camera scanner
     if (scannerRef.current) {
       scannerRef.current.stop().catch(() => {});
     }
 
-    let payload = null;
-    if (text.includes('share=')) {
-      payload = decodeWishlistFromShareUrl(text);
-    } else {
-      payload = decodeWishlistFromShareUrl(`?share=${text}`);
-    }
+    const payload = decodeWishlistFromShareUrl(text);
 
     if (payload) {
       onScanSuccess(payload);
